@@ -1,0 +1,164 @@
+port: 3128
+socks-port: 1789
+#redir-port: 54321
+allow-lan: false
+#mixed-port: 7890
+# bind-address: "127.0.0.1"
+
+
+mode: rule
+
+log-level: info
+# log-level: silent
+
+external-ui: ./dashboard
+external-controller: 127.0.0.1:9090
+# secret: "509780"
+
+experimental:
+  ignore-resolve-fail: true 
+
+
+# authentication:
+#  - "user1:pass1"
+#  - "user2:pass2"
+
+hosts:
+  '*.clash.dev': '127.0.0.1'
+dns:
+  enable: false
+  ipv6: false
+  listen: 127.0.0.9:53
+  #redir-host # 或 fake-ip
+  enhanced-mode: redir-host
+
+  nameserver:
+     - 1.2.4.8
+     - 114.114.114.114
+     - 223.5.5.5
+     #- https://dns.rubyfish.cn/dns-query
+     
+  fallback: 
+     - tls://dns.rubyfish.cn:853
+     - tls://9.9.9.9:853
+proxies:
+  - name: z
+    type: ss
+    server: x.x.x.x
+    port: 30301
+    cipher: aes-128-gcm
+    password: zzzz
+    udp: true
+
+  - name: cdn
+    type: vmess
+    server: x.x.x.x
+    port: 443
+    uuid: 03042ad7-6316-46a0-8473-65768b0f1fb2
+    alterId: 0
+    cipher: auto
+    network: ws
+    ws-path: /na 
+    tls: true
+
+  # Trojan
+  - name: tj
+    type: trojan
+    server: x.x.x.x
+    port: 443
+    password: xxxxx
+
+# proxy provider start here
+proxy-providers:
+#  duyaoo-local:
+#    type: file
+#    path: ./proxy.d/duyaoo.yaml
+#    url: ''
+#    interval: 600
+#    health-check:
+#      enable: true
+#      url: http://www.gstatic.com/generate_204
+#      interval: 300
+  Air:
+    type: http
+    path: ./online.d/air.yaml
+    # 你代理定义的url，也可以用上面注释掉的本地的yaml配置，代理配置例子见
+    url: ''
+    interval: 3600
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204
+      interval: 300
+# proxy provider end
+     
+
+proxy-groups:
+  - name: "use-proxy"
+    type: select
+    use:
+      - Air
+    proxies:
+      - tj
+      - z
+      - cdn
+     
+rule-providers:
+  #name of the provider
+  ad-block:
+    type: http
+    behavior: classical
+    path: ./online.d/ad.rule.yaml
+    url: 'https://kuyagic.keybase.pub/clash-rule/ad.yaml'
+    interval: 600
+  lan:
+    type: http
+    behavior: classical
+    path: ./online.d/lan.rule.yaml
+    url: 'https://kuyagic.keybase.pub/clash-rule/lan.yaml'
+    interval: 600
+  china:
+    type: http
+    behavior: classical
+    path: ./online.d/china.rule.yaml
+    url: 'https://kuyagic.keybase.pub/clash-rule/china.yaml'
+    interval: 600
+  proxy:
+    type: http
+    behavior: classical
+    path: ./online.d/proxy.rule.yaml
+    url: 'https://kuyagic.keybase.pub/clash-rule/proxy.yaml'
+    interval: 600
+        
+rules:
+  - RULE-SET,ad-block,REJECT
+  - RULE-SET,china,DIRECT
+  - RULE-SET,lan,DIRECT
+  - RULE-SET,proxy,use-proxy
+  
+  # Apple
+  - DOMAIN-SUFFIX,apps.apple.com,use-proxy
+  - DOMAIN-SUFFIX,music.apple.com,DIRECT
+  - DOMAIN-SUFFIX,icloud.com,DIRECT
+  - DOMAIN-SUFFIX,icloud-content.com,DIRECT
+  - DOMAIN-SUFFIX,me.com,DIRECT
+  - DOMAIN-SUFFIX,mzstatic.com,DIRECT
+  - DOMAIN-SUFFIX,akadns.net,DIRECT
+  - DOMAIN-SUFFIX,aaplimg.com,DIRECT
+  - DOMAIN-SUFFIX,cdn-apple.com,DIRECT
+  - DOMAIN-SUFFIX,apple.com,DIRECT
+  - DOMAIN-SUFFIX,apple-cloudkit.com,DIRECT
+  - DOMAIN,hls.itunes.apple.com,use-proxy
+  
+  #注释此选项有助于大多数App开发者分析崩溃信息；如果您拒绝一切崩溃数据统计、搜集，请取消 # 注释。
+  #- DOMAIN,e.crashlytics.com,REJECT   
+  
+  # proxy
+  - DOMAIN-SUFFIX,2r.erl.re,DIRECT
+  - IP-CIDR,104.225.252.172/32,DIRECT
+  - IP-CIDR,132.145.88.32/32,DIRECT
+  - IP-CIDR,89.40.14.161/32,DIRECT
+
+  # 最终规则
+  - GEOIP,CN,DIRECT
+  - MATCH,use-proxy
+  
